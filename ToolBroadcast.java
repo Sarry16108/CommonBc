@@ -1,4 +1,4 @@
-package com.yushi.yunbang.tools;
+package com.example.administrator.testall.selfbroadcast;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -8,13 +8,11 @@ import android.content.IntentFilter;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.util.ArrayMap;
+import android.util.Log;
 
-import com.yun8zhaohuo.library.tools.ToolLog;
-import com.yushi.yunbang.entity.CommonReceiver;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 
 
 /**
@@ -25,7 +23,8 @@ public class ToolBroadcast extends BroadcastReceiver {
     private final String TAG = "ToolBroadcast";
 
     private static ToolBroadcast    mToolBroadcast;
-    private Map<String, LinkedHashMap<String, CommonReceiver>> mActivityList = new ArrayMap<>();
+    //<action, <activity, callback>>，activity不能是class name，否则遇到同一个页面start两次的就会出现覆盖现象。
+    private Map<String, LinkedHashMap<Integer, BcReceiver>> mActivityList = new ArrayMap<>();
 
 
     public static ToolBroadcast getInstance() {
@@ -44,16 +43,28 @@ public class ToolBroadcast extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        Map<String, CommonReceiver> receivers = mActivityList.get(action);
-        for (CommonReceiver receiver : receivers.values()) {
-            receiver.onReceiver(intent);
+        Map<Integer, BcReceiver> receivers = mActivityList.get(action);
+        for (BcReceiver receiver : receivers.values()) {
+            receiver.onReceiver(context, intent);
+        }
+    }
+
+    //批量添加广播
+    public void registerBroadcast(BcReceiver broadcastReceiver, IntentFilter filter) {
+        if (null == broadcastReceiver || null == filter) {
+            Log.e(TAG, "sendBroadcast" + " parameters contain error");
+            return;
+        }
+
+        for (int i = 0; i < filter.countActions(); ++i) {
+            registerBroadcast(broadcastReceiver, filter.getAction(i));
         }
     }
 
     //添加注册
-    public void registerBroadcast(CommonReceiver broadcastReceiver, String action) {
+    public void registerBroadcast(BcReceiver broadcastReceiver, String action) {
         if (null == broadcastReceiver || null == action) {
-            ToolLog.e(TAG, "sendBroadcast", "parameters contain error");
+            Log.e(TAG, "sendBroadcast" + " parameters contain error");
             return;
         }
 
@@ -72,22 +83,35 @@ public class ToolBroadcast extends BroadcastReceiver {
             }
         }
 
-        LinkedHashMap<String, CommonReceiver> map = mActivityList.get(action);
+        LinkedHashMap<Integer, BcReceiver> map = mActivityList.get(action);
         if (null == map) {
             map = new LinkedHashMap<>(3);
         }
-        map.put(broadcastReceiver.getClass().getSimpleName(), broadcastReceiver);
+        map.put(broadcastReceiver.hashCode(), broadcastReceiver);
         mActivityList.put(action, map);
     }
 
-    //解注册
-    public void unRegisterBroacast(CommonReceiver broadcastReceiver, String action) {
-        if (null == broadcastReceiver || null == action) {
-            ToolLog.e(TAG, "sendBroadcast", "parameters contain error");
+
+    //批量解注册
+    public void unRegisterBroacast(BcReceiver broadcastReceiver, IntentFilter filter) {
+        if (null == broadcastReceiver || null == filter) {
+            Log.e(TAG, "sendBroadcast" + " parameters contain error");
             return;
         }
 
-        Map<String, CommonReceiver> receivers = mActivityList.get(action);
+        for (int i = 0; i < filter.countActions(); ++i) {
+            unRegisterBroacast(broadcastReceiver, filter.getAction(i));
+        }
+    }
+
+    //解注册
+    public void unRegisterBroacast(BcReceiver broadcastReceiver, String action) {
+        if (null == broadcastReceiver || null == action) {
+            Log.e(TAG, "sendBroadcast" + " parameters contain error");
+            return;
+        }
+
+        Map<Integer, BcReceiver> receivers = mActivityList.get(action);
         if (null == receivers) {
             return;
         }
@@ -111,17 +135,18 @@ public class ToolBroadcast extends BroadcastReceiver {
     }
 
     //发送广播消息
-    public void sendBroadcast(Activity activity, Intent intent) {
+    public void sendBroadcast(Activity activity, String action, Intent intent) {
         if (null == activity || null == intent) {
-            ToolLog.e(TAG, "sendBroadcast", "parameters contain error");
+            Log.e(TAG, "sendBroadcast" + " parameters contain error");
             return;
         }
+        intent.setAction(action);
         activity.sendBroadcast(intent);
     }
 
-    public void sendBroadcast(Activity activity, String key, int value) {
+    public void sendBroadcast(Activity activity, String action, String key, int value) {
         Intent intent = new Intent();
         intent.putExtra(key, value);
-        sendBroadcast(activity, intent);
+        sendBroadcast(activity, action, intent);
     }
 }
