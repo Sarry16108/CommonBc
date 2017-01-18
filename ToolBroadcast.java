@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.util.ArrayMap;
+import android.text.TextUtils;
 import android.util.Log;
 
 
@@ -141,6 +142,21 @@ public class ToolBroadcast extends BroadcastReceiver {
             return;
         }
         intent.setAction(action);
+        activity.sendBroadcast(intent);
+    }
+
+
+    //发送广播消息，intent包含action
+    public void sendBroadcast(Activity activity, Intent intent) {
+        if (null == activity || null == intent) {
+            Log.e(TAG, "sendBroadcast" + " parameters contain error");
+            return;
+        }
+
+        if (TextUtils.isEmpty(intent.getAction())) {
+            Log.e(TAG, "sendBroadcast" + " intent doesn't contains action");
+            return;
+        }
         activity.sendBroadcast(intent);
     }
 
